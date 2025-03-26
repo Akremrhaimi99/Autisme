@@ -22,11 +22,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-bg=(f+s+)_f!s18!nb&jpkjz$2tgltkxqcn-3@+6(=q_dqq%6='
 
+
+
+CORS_ALLOW_ALL_ORIGINS = True  # Autorise toutes les origines (pas recommandé en production)
+
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 ALLOWED_HOSTS = []
 
+AUTH_USER_MODEL = 'user.User'
 
 # Application definition
 
@@ -37,9 +43,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
+    'user',
+    'rest_framework',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -75,8 +85,12 @@ WSGI_APPLICATION = 'autism.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'autism',
+        'USER': 'root',
+        'PASSWORD': '',  # Mets le mot de passe MySQL si nécessaire
+        'HOST': 'localhost',
+        'PORT': '4306',  # Assure-toi que MySQL utilise bien ce port
     }
 }
 
