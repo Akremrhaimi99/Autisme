@@ -30,8 +30,8 @@ const Signin = () => {
             <h1>Connexion</h1>
             <form onSubmit={handleSubmit}>
                 <input 
-                    type="email" 
-                    name="email" 
+                    type="text" 
+                    name="username" 
                     onChange={handleChange}
                     required 
                 />
