@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+from datetime import timedelta
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -46,6 +48,8 @@ INSTALLED_APPS = [
     'corsheaders',
     'user',
     'rest_framework',
+    'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
 ]
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -57,16 +61,35 @@ REST_FRAMEWORK = {
     ),
 }
 
+SIMPLE_JWT = {
+    'BLACKLIST_AFTER_ROTATION': True,  # Active la rotation et la blacklist
+    'USER_AUTHENTICATION_RULE': 'myapp.rules.my_custom_rule',  # Si tu veux une règle personnalisée
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'ROTATE_REFRESH_TOKENS': False,     # Active la rotation des tokens refresh
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'BLACKLIST_AFTER_ROTATION': True,
+}
+
 
 MIDDLEWARE = [
+    
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+CORS_ALLOW_ALL_ORIGINS = True  # Active tous les domaines pour tester
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",  # Frontend React (si utilisé)
+    "http://127.0.0.1:3000",  # Frontend React en local
+    "http://localhost:8000",  # Serveur Django
+    "http://127.0.0.1:8000"   # Serveur Django en local
 ]
 
 ROOT_URLCONF = 'autism.urls'

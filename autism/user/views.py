@@ -2,31 +2,33 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from .models import User
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.permissions import AllowAny
+from rest_framework_simplejwt.token_blacklist.models import OutstandingToken,BlacklistedToken
+from rest_framework_simplejwt.exceptions import TokenError
 
-# Create your views here.
-# Create your views here.
 
+# Création d'un utilisateur (inscription)
 class SignupView(APIView):
-     def post(self, request):
+    permission_classes = [AllowAny]  # Permet l'accès à tous les utilisateurs
+    def post(self, request):
         username = request.data.get('username')
         email = request.data.get('email')
         password = request.data.get('password')
 
-        if User.objects.filter(username=username).exists():
+        if User.objects.filter(username=username, email=email).exists() :
             return Response({"error": "Nom d'utilisateur déjà pris"}, status=400)
 
         user = User.objects.create_user(username=username, email=email, password=password)
         return Response({"message": "Utilisateur créé avec succès"}, status=201)
 
+
+# Authentification de l'utilisateur avec JWT
 class SigninView(APIView):
-    """
-    Vue pour l'authentification de l'utilisateur avec JWT
-    Remplace le système de session par des tokens JWT
-    """
+    permission_classes = [AllowAny]  # Permet à tout le monde d'accéder à cette vue
     def post(self, request):
         # Récupération des identifiants depuis la requête
         username = request.data.get('username')
@@ -49,58 +51,45 @@ class SigninView(APIView):
         return Response({"message": "Identifiants invalides"}, status=status.HTTP_400_BAD_REQUEST)
 
 
+# Déconnexion de l'utilisateur (invalidation du refresh token)
 class SignoutView(APIView):
-    """
-    Vue pour la déconnexion (invalidation du refresh token)
-    Nécessite que l'utilisateur soit authentifié
-    """
     permission_classes = [IsAuthenticated]  # Seul un utilisateur authentifié peut se déconnecter
 
     def post(self, request):
+        refresh_token = request.data.get("refresh")  # Récupérer le refresh token du corps de la requête
+
+        if not refresh_token:
+            return Response({"message": "Refresh token manquant"}, status=400)
+
         try:
-            # Récupération du refresh token depuis le corps de la requête
-            refresh_token = request.data["refresh"]
-            
-            # Création d'un objet token et ajout à la blacklist
+             # Décoder le refresh token pour obtenir un token valide
             token = RefreshToken(refresh_token)
-            token.blacklist()  # Rend le token inutilisable
-            
-            return Response({"message": "Déconnexion réussie"}, status=status.HTTP_200_OK)
-        except Exception as e:
-            # Gestion des erreurs (token manquant ou invalide)
-            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Vérifier si le refresh token est un OutstandingToken
+            outstanding_token = OutstandingToken.objects.filter(token=token).first()
+
+            if not outstanding_token:
+                return Response({"message": "Token invalide"}, status=400)
+
+            # Ajouter le token à la blacklist
+            BlacklistedToken.objects.create(token=outstanding_token)
+            return Response({"message": "Déconnexion réussie"}, status=200)
+
+        except TokenError as e:
+            return Response({"message": "Erreur de déconnexion", "error": str(e)}, status=400)
 
 
+# Vue protégée nécessitant un authentification via JWT
 class ProfileView(APIView):
-    """
-    Vue protégée qui nécessite une authentification par JWT
-    Retourne des informations sur l'utilisateur connecté
-    """
-    # Configuration de l'authentification
-    permission_classes = [IsAuthenticated]      # Nécessite un token valide
-    authentication_classes = [JWTAuthentication] # Utilise JWT pour l'authentification
+    permission_classes = [IsAuthenticated]  # Nécessite un token valide pour accéder à la vue
+    authentication_classes = [JWTAuthentication]  # Utilise JWT pour l'authentification
 
     def get(self, request):
         """
         Retourne le username de l'utilisateur authentifié
-        Le token JWT doit être fourni dans le header:
-        Authorization: Bearer <access_token>
+        Le token JWT doit être fourni dans l'en-tête Authorization: Bearer <access_token>
         """
-        # request.user est disponible grâce au JWT authentication
         return Response({
             "username": request.user.username,
             "message": "Vous êtes authentifié avec JWT"
         }, status=status.HTTP_200_OK)
-
-
-
-
-
-
-
-class ProfileView(APIView):
-    """ Vérifie si l'utilisateur est connecté """
-    def get(self, request):
-        if request.user.is_authenticated:
-            return Response({"username": request.user.username}, status=status.HTTP_200_OK)
-        return Response({"message": "Non connecté"}, status=status.HTTP_401_UNAUTHORIZED)
