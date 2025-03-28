@@ -2,7 +2,7 @@ import logo from './logo.svg';
 import './App.css';
 import Signup from './signup';
 import Signin from './signin';
-import Home from './signin';
+import Home from './home';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
 
